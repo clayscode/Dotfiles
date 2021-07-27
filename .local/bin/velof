@@ -1,0 +1,70 @@
+#!/bin/python3
+import subprocess
+import sys
+
+class VeloException(Exception):
+    pass
+
+row = ""
+dformat = sys.argv[1]
+loc = sys.argv[3]
+scope = sys.argv[4]
+artifact_dir = sys.argv[5]
+verbose = sys.argv[6]
+if dformat == 'nil' or dformat =='json':
+    outputformat = "json"
+elif dformat == 'csv':
+    outputformat = 'csv'
+elif dformat == 'table':
+    outputformat = 'text'
+elif dformat == 'jsonl':
+    outputformat = 'jsonl'
+else:
+    print('Invalid format {dformat}! Valid formats are json, jsonl, csv, or table.')
+    exit()
+
+if loc == 'nil':
+    loc = None
+with open(sys.argv[2]) as handle:
+    row = " ".join(handle.readlines())
+output = ""
+try:
+    base = ["velociraptor", "query"]
+    if scope != 'nil':
+        base.extend(['--scope_file', scope])
+
+    if artifact_dir != 'nil':
+        base.extend(['--definitions', artifact_dir])
+
+    if loc == 'remote':
+        base.extend(["--api_config","/home/clay/.config/v-client.yaml"])
+        base.extend(["--format",outputformat])
+
+    if verbose != 'nil':
+        base.extend(["-v"])
+    else:
+        verbose = None
+
+    base.extend([row])
+
+    command = base
+    for line in subprocess.check_output(command, stdin=None, stderr=None, shell=False, universal_newlines=False).decode('utf-8').splitlines():
+        if verbose:
+            output += line + "\n"
+        else:
+            while line.startswith("[]"):
+                line = line[2:]
+            while line.startswith("]["):
+                line = ", " + line[2:]
+            output+= line + "\n"
+
+    if dformat == 'table':
+        print('\n'.join(output.split('\n')[:-2]))
+
+    else:
+        print(output)
+except Exception as e:
+    res = ""
+    for line in subprocess.check_output(command + ['-v']).decode('utf-8').splitlines():
+        res += line
+    raise VeloException(res)

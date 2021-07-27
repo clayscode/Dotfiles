@@ -1,0 +1,10 @@
+#!/bin/python3
+import subprocess
+import fileinput
+import json
+from pprint import pprint
+row = ""
+for line in fileinput.input():
+    row += line
+for line in subprocess.check_output(["velociraptor", "query", "-v", row]).decode('utf-8').splitlines():
+    print(line)
